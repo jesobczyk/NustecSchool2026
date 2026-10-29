@@ -6,9 +6,9 @@ Each notebook is short: text, a few sliders and live figures. All the physics co
 
 | Lecture | Notebook | Open |
 |---|---|---|
-| 1 | The quasielastic peak, the Fermi gas and the mean field | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GHUSER/NustecSchool2026/blob/main/L1_FermiGas/L1_QE_FermiGas_MeanField.ipynb) |
-| 2 | From the local Fermi gas to orbitals: what (e,e′p) sees | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GHUSER/NustecSchool2026/blob/main/L2_Orbitals/L2_eep_Orbitals_SpectralFunction.ipynb) |
-| 3 | Your own Hartree–Fock solver | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/GHUSER/NustecSchool2026/blob/main/L3_HartreeFock/L3_SkyrmeHF.ipynb) |
+| 1 | The quasielastic peak, the Fermi gas and the mean field | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jesobczyk/NustecSchool2026/blob/main/L1_FermiGas/L1_QE_FermiGas_MeanField.ipynb) |
+| 2 | From the local Fermi gas to orbitals: what (e,e′p) sees | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jesobczyk/NustecSchool2026/blob/main/L2_Orbitals/L2_eep_Orbitals_SpectralFunction.ipynb) |
+| 3 | Your own Hartree–Fock solver | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jesobczyk/NustecSchool2026/blob/main/L3_HartreeFock/L3_SkyrmeHF.ipynb) |
 
 ## Running on Google Colab (recommended)
 
@@ -23,7 +23,7 @@ If the session disconnects (for example after a long break), just run the first 
 ## Running on your own computer
 
 ```bash
-git clone https://github.com/GHUSER/NustecSchool2026.git
+git clone https://github.com/jesobczyk/NustecSchool2026.git
 cd NustecSchool2026
 pip install -r requirements.txt jupyterlab
 jupyter lab
@@ -33,7 +33,7 @@ If the sliders do not appear, run `demo.USE_WIDGETS = False` (Lectures 1–2) or
 
 ## Data
 
-- Inclusive ¹²C(e,e′) cross sections: the Quasielastic Electron Nucleus Scattering Archive (O. Benhar, D. Day, I. Sick), https://discovery.phys.virginia.edu/research/groups/qes-archive/
+- Inclusive (e,e′) cross sections of ⁴He, ⁶Li, ¹²C, ¹⁶O, ²⁷Al, ⁴⁰Ca, ⁵⁶Fe, ¹⁹⁷Au, ²⁰⁸Pb: the Quasielastic Electron Nucleus Scattering Archive (O. Benhar, D. Day, I. Sick), https://discovery.phys.virginia.edu/research/groups/qes-archive/
 - ¹²C(e,e′p): J. Mougey *et al.*, Nucl. Phys. A 262 (1976) 461; D. Dutta *et al.*, Phys. Rev. C 68 (2003) 064603 (digitised from the published figures).
 - Rosenbluth-separated responses of ¹²C and ⁴⁰Ca: Jourdan, Nucl. Phys. A 603 (1996) 117; Williamson *et al.*, Phys. Rev. C 56 (1997) 3152; Meziani *et al.*, Phys. Rev. Lett. 52 (1984) 2130.
 

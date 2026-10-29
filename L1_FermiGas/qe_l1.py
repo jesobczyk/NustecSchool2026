@@ -280,6 +280,66 @@ def show_C():
                static_calls=[dict(kF=228, Es=20, show_rfg=True, qrange=[0.3, 1.05]),
                              dict(kF=228, Es=0,  show_rfg=True, qrange=[0.3, 1.05])])
 
+
+# ---------- scaling of the second kind: many nuclei ----------
+# (Z, N, k_F [MeV], E_shift [MeV], from the table?)  k_F and E_shift: Maieron, Donnelly, Sick, PRC 65 (2002) 025502, Table 1.
+# 4He and 16O are not in that table: the values below are our own starting guesses (marked with *).
+# Any QES-archive file dropped into data/ (e.g. 56Fe.dat, 208Pb.dat) is picked up automatically.
+NUCLEI = {'4He': (2, 2, 200, 20, False), '6Li': (3, 3, 165, 15, True), '12C': (6, 6, 228, 20, True), '16O': (8, 8, 230, 20, False),
+          '27Al': (13, 14, 236, 18, True), '40Ca': (20, 20, 241, 28, True), '48Ca': (20, 28, 241, 28, False),
+          '56Fe': (26, 30, 241, 23, True), '197Au': (79, 118, 245, 25, True), '208Pb': (82, 126, 248, 31, True)}
+NUC_COL = {'4He': '#e34948', '6Li': '#e87ba4', '12C': '#2a78d6', '16O': '#1baf7a', '27Al': '#eda100',
+           '40Ca': '#6250d6', '48Ca': '#9b8be0', '56Fe': '#eb6834', '197Au': '#8a6d00', '208Pb': '#2b2b2b'}
+
+def load_nucleus(name):
+    raw_ = np.genfromtxt(os.path.join(DATA, f'{name}.dat'), usecols=(2,3,4,5,6), invalid_raise=False)
+    cite_ = np.genfromtxt(os.path.join(DATA, f'{name}.dat'), usecols=(-1), dtype=str, invalid_raise=False)
+    out = {}
+    for E, th in sorted({(round(r[0],4), round(r[1],3)) for r in raw_}):
+        m = (np.abs(raw_[:,0]-E)<1e-4) & (np.abs(raw_[:,1]-th)<1e-3)
+        out[(E, th)] = dict(E=E, th=np.radians(th), om=raw_[m,2], sig=raw_[m,3], err=raw_[m,4], ref=cite_[m][0].split(':')[0])
+    return out
+
+all_nuclei = {n: load_nucleus(n) for n in NUCLEI if os.path.exists(os.path.join(DATA, f'{n}.dat'))}
+
+def scaling_sets_of(spectra, qlo=0.30, qhi=1.05):
+    return [d for d in spectra.values() if qlo <= q_at_peak(d) <= qhi and d['E'] >= 0.4]
+
+def panel_C2(chosen, same_kF, kF_all, Es_all, qrange):
+    fig, axs = plt.subplots(1, 2, figsize=(13.5, 5.2), gridspec_kw=dict(wspace=0.2))
+    ps = np.linspace(-2.5, 2.5, 500)
+    for n in chosen:
+        Z, N, kF, Es, tab = NUCLEI[n]
+        if same_kF: kF, Es = kF_all, Es_all
+        sets = scaling_sets_of(all_nuclei[n], *qrange); npts = sum(len(d['om']) for d in sets)
+        for i, d in enumerate(sets):
+            psi, GL, GT, vL, vT, q = scaling_pieces(d['E'], d['th'], d['om'], kF*1e-3, Es*1e-3, Z, N)
+            f = d['sig']/HBARC2_NB/(mott(d['E'], d['th'])*(vL*GL + vT*GT))
+            lab = f'{n}{"" if tab or same_kF else "*"}   $k_F$ = {kF:.0f}, $E_s$ = {Es:.0f} MeV  ({len(sets)} spectra)' if i == 0 else None
+            for ax in axs: ax.plot(psi, f, 'o', ms=3.2, mec='none', color=NUC_COL[n], alpha=0.75, label=lab if ax is axs[0] else None)
+    for ax in axs:
+        ax.plot(ps, f_RFG(ps), color='#888', lw=1.5, ls='--', label=r'Fermi gas  $\frac{3}{4}(1-\psi^{\prime 2})$' if ax is axs[0] else None)
+        ax.axvspan(1.0, 2.6, color=C['grid'], alpha=0.5, lw=0); ax.set_xlabel(r"scaling variable  $\psi'$"); polish(ax)
+    axs[0].set(xlim=(-2.1, 2.6), ylim=(0, 0.95), ylabel=r"$f(\psi')$", title='linear scale: the peak')
+    axs[1].set(xlim=(-2.1, 1.0), ylim=(3e-3, 1.2), yscale='log', title=r"log scale: the low-$\omega$ side ($\psi'<0$)")
+    fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.0), ncol=3, fontsize=9.5)
+    fig.suptitle('Scaling of the second kind: the same curve for different nuclei' + ('  — one $k_F$ for all' if same_kF else '  — each nucleus with its own $k_F$'),
+                 y=1.02, fontsize=12.5, fontweight='bold')
+    plt.show()
+
+def show_C2():
+    """Panel C2: superscaling across nuclei (scaling of the second kind)."""
+    avail = list(all_nuclei)
+    w_nuc = W.SelectMultiple(options=avail, value=[n for n in avail if n in ('6Li', '12C', '40Ca', '56Fe', '208Pb')] or avail[:2], description='nuclei', rows=min(6, len(avail)), layout=W.Layout(width='260px'))
+    w_same = W.Checkbox(False, description='same k_F for all nuclei')
+    w_kFa = W.FloatSlider(228, min=150, max=280, step=1, description='$k_F$ [MeV]', readout_format='.0f', continuous_update=False, layout=W.Layout(width='380px'))
+    w_Esa = W.FloatSlider(20, min=0, max=50, step=1, description='$E_{\\rm shift}$ [MeV]', readout_format='.0f', continuous_update=False, layout=W.Layout(width='380px'))
+    w_q = W.FloatRangeSlider(value=[0.3, 1.05], min=0.3, max=1.05, step=0.05, description='q range [GeV]', continuous_update=False, layout=W.Layout(width='380px'))
+    show_panel(panel_C2, W.HBox([w_nuc, W.VBox([w_same, w_kFa, w_Esa, w_q])]),
+               dict(chosen=w_nuc, same_kF=w_same, kF_all=w_kFa, Es_all=w_Esa, qrange=w_q),
+               static_calls=[dict(chosen=avail, same_kF=False, kF_all=228, Es_all=20, qrange=[0.3, 1.05]),
+                             dict(chosen=avail, same_kF=True, kF_all=228, Es_all=20, qrange=[0.3, 1.05])])
+
 def panel_D(setname, x):
     par = EQS[setname]; rho = x*RHO0
     fig, axs = plt.subplots(1, 3, figsize=(13.5, 4.6), gridspec_kw=dict(wspace=0.32))
