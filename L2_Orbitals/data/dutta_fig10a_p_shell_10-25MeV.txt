@@ -1,0 +1,18 @@
+# 12C(e,e'p) at Q^2 = 1.28 (GeV/c)^2, Dutta et al., Phys. Rev. C 68 (2003) 064603 [nucl-ex/0303011], extracted from the vector graphics of the PDF (exact marker positions)
+# Fig. 10 top: 10 < E_m < 25 MeV (p-shell region). columns: p_m [MeV/c] (negative = opposite side of q), S^D integrated over E_m [MeV^-3]; distorted (no FSI correction), as plotted
+ -299.9  1.371e-09
+ -260.0  4.301e-09
+ -220.2  1.181e-08
+ -180.0  2.707e-08
+ -140.1  5.026e-08
+  -99.9  6.112e-08
+  -60.1  4.720e-08
+  -20.3  1.889e-08
+   19.9  1.889e-08
+   59.8  4.720e-08
+  100.0  6.112e-08
+  139.8  5.026e-08
+  179.7  2.707e-08
+  219.9  1.181e-08
+  259.7  4.301e-09
+  299.9  1.371e-09

@@ -1,0 +1,18 @@
+# 12C(e,e'p) at Q^2 = 1.28 (GeV/c)^2, Dutta et al., Phys. Rev. C 68 (2003) 064603 [nucl-ex/0303011], extracted from the vector graphics of the PDF (exact marker positions)
+# Fig. 9: missing-energy spectral function integrated over p_m, 5-MeV bins. columns: E_m [MeV] (bin centre), S^D integrated over d^3p_m [MeV^-1]
+  2.47   0.0020
+  7.49   0.0020
+ 12.50   0.0020
+ 17.47   0.5734
+ 22.48   0.2709
+ 27.50   0.0588
+ 32.51   0.0660
+ 37.48   0.0795
+ 42.50   0.0684
+ 47.51   0.0552
+ 52.48   0.0292
+ 57.49   0.0172
+ 62.51   0.0084
+ 67.52   0.0064
+ 72.49   0.0056
+ 77.50   0.0052

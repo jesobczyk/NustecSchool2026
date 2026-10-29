@@ -1,0 +1,18 @@
+# 12C(e,e'p) distorted momentum distributions, digitised from Mougey et al., Nucl. Phys. A262 (1976) 461, Fig. 10 (approximate, ~5%)
+# columns: p_m [MeV/c], momentum density [(GeV/c)^-3]
+# panel (b): 30 <= E_m <= 50 MeV (1s1/2 shell)
+   9.6   45.49
+  25.6   42.42
+  42.0   33.48
+  57.6   29.66
+  69.8   30.93
+  76.8   28.61
+  90.4   23.00
+ 105.5   21.25
+ 121.4   13.79
+ 136.0   13.16
+ 152.9    7.91
+ 167.5    6.09
+ 184.4    5.36
+ 200.4    5.48
+ 263.1    1.32
