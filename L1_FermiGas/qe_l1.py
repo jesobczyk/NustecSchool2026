@@ -32,6 +32,8 @@ def show_panel(fn, controls, widget_kwargs, static_calls):
     else:
         for kw in static_calls: fn(**kw)
 
+WIDE = {'description_width': 'initial'}   # long plain-text labels (Colab does not render LaTeX in widget labels)
+
 def polish(ax):
     ax.xaxis.set_minor_locator(AutoMinorLocator()); ax.yaxis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(which='minor', length=2, color='#999'); ax.set_axisbelow(True)
@@ -142,38 +144,14 @@ for E, th in sorted({(round(r[0],4), round(r[1],3)) for r in raw}):
 def get(E, th):
     return next(v for v in datasets.values() if abs(v['E']-E)<1e-3 and abs(np.degrees(v['th'])-th)<0.05)
 
-def show_A():
-    """Panel A: anatomy of the quasielastic peak (static figure)."""
-    d = get(0.961, 37.5); kF, eB = 0.221, 0.025
-    om = np.linspace(0.02, 0.65, 400)
-    tot, L, T = rfg_xsec(d['E'], d['th'], om, kF, eB)
-
-    fig, ax = plt.subplots(figsize=(9.5, 5.2))
-    ax.errorbar(d['om']*1e3, d['sig'], d['err'], fmt='o', ms=4, color=C['data'], ecolor=C['data_light'], elinewidth=1, capsize=0, label=r'$^{12}$C$(e,e^\prime)$  Sealock 1989', zorder=3)
-    ax.fill_between(om*1e3, 0, L, color=C['L'], alpha=0.25, lw=0, label='longitudinal  $v_L R_L$')
-    ax.fill_between(om*1e3, L, L+T, color=C['T'], alpha=0.25, lw=0, label='transverse  $v_T R_T$')
-    ax.plot(om*1e3, tot, color=C['rfg'], label=f'RFG   $k_F$ = {kF*1e3:.0f} MeV,  $\\varepsilon_B$ = {eB*1e3:.0f} MeV')
-
-    w0 = qe_peak_position(d['E'], d['th'], 0.0); wB = qe_peak_position(d['E'], d['th'], eB)
-    ymax = tot.max()
-    ax.annotate('', xy=(wB*1e3, ymax*1.08), xytext=(w0*1e3, ymax*1.08), arrowprops=dict(arrowstyle='->', color=C['accent'], lw=1.5))
-    ax.plot([w0*1e3]*2, [0, ymax*1.08], ls=':', color=C['accent'], lw=1.2); ax.plot([wB*1e3]*2, [0, ymax*1.08], ls='--', color=C['accent'], lw=1.2)
-    ax.text(w0*1e3-4, ymax*1.12, r'$\omega = Q^2/2M$' + '\n(free nucleon)', ha='right', color=C['accent'], fontsize=10)
-    ax.text(wB*1e3+4, ymax*1.12, r'$+\,\varepsilon_B$', ha='left', color=C['accent'], fontsize=10)
-    _, q0, _, _ = lepton_factors(d['E'], d['th'], wB); width = 2*q0*kF/M
-    ax.annotate('', xy=((wB-width/2)*1e3, ymax*0.5), xytext=((wB+width/2)*1e3, ymax*0.5), arrowprops=dict(arrowstyle='<->', color=C['rfg'], lw=1.5))
-    ax.text(wB*1e3, ymax*0.53, r'full width $\simeq 2qk_F/M$', ha='center', color=C['rfg'], fontsize=10)
-    ax.annotate('Δ(1232) and beyond:\nnot in a Fermi gas', xy=(440, 4400), xytext=(470, 1500), fontsize=10, color='#555',
-                arrowprops=dict(arrowstyle='-', color='#999', lw=1))
-    ax.set(xlabel=r'energy transfer  $\omega$  [MeV]', ylabel=r'$d^2\sigma/d\Omega\,d\omega$   [nb sr$^{-1}$ GeV$^{-1}$]',
-           title='Anatomy of the quasielastic peak', xlim=(0, 660), ylim=(0, ymax*1.32))
-    ax.legend(loc='upper right'); polish(ax); plt.show()
-
-names = list(datasets)
-default = next(n for n in names if n.startswith('E = 0.961'))
+EMAX_FIT = 4.3   # GeV: spectra at higher beam energy are not offered in the fit panel
+fit_sets = [n for n in datasets if datasets[n]['E'] <= EMAX_FIT + 1e-6]
+names = [f'{i+1:2d}.  {n}' for i, n in enumerate(fit_sets)]           # numbered labels, e.g. ' 7.  E = 0.320 GeV, ...'
+label_to_set = dict(zip(names, fit_sets))
+default = next(l for l in names if label_to_set[l].startswith('E = 0.961'))
 
 def panel_B(name, kF, eB, showLT, pauli):
-    d = datasets[name]; kF *= 1e-3; eB *= 1e-3
+    d = datasets[label_to_set.get(name, name)]; kF *= 1e-3; eB *= 1e-3
     om = np.linspace(max(d['om'].min()*0.6, 0.01), min(d['om'].max()*1.05, d['E']*0.97), 350)
     tot, L, T = (rfg_xsec if pauli else rfg_xsec_noblock)(d['E'], d['th'], om, kF, eB)
     fig = plt.figure(figsize=(9.5, 6.2)); gs = fig.add_gridspec(2, 1, height_ratios=[3.2, 1], hspace=0.08)
@@ -218,7 +196,7 @@ def rfg_xsec_noblock(E, th, omega, kF, eB, Z=6, N=6):
 
 def panel_B_static(name=default):
     """Static version: what each knob does, as small multiples."""
-    d = datasets[name]; om = np.linspace(max(d['om'].min()*0.6, 0.01), min(d['om'].max()*1.05, d['E']*0.97), 350)
+    d = datasets[label_to_set.get(name, name)]; om = np.linspace(max(d['om'].min()*0.6, 0.01), min(d['om'].max()*1.05, d['E']*0.97), 350)
     fig, axs = plt.subplots(1, 2, figsize=(13, 4.8), sharey=True, gridspec_kw=dict(wspace=0.06))
     for ax, (label, vals, fixed) in zip(axs, [(r'$k_F$', [180, 221, 260], ('eB', 25)), (r'$\varepsilon_B$', [0, 25, 50], ('kF', 221))]):
         ax.errorbar(d['om']*1e3, d['sig'], d['err'], fmt='o', ms=3.5, color=C['data'], ecolor=C['data_light'], elinewidth=1, capsize=0, zorder=3)
@@ -226,24 +204,25 @@ def panel_B_static(name=default):
             kF, eB = (v, fixed[1]) if fixed[0] == 'eB' else (fixed[1], v)
             tot, _, _ = rfg_xsec(d['E'], d['th'], om, kF*1e-3, eB*1e-3)
             ax.plot(om*1e3, tot, color=C['rfg'], alpha=a, ls=ls, lw=2 if a == 1 else 1.6, label=f'{label} = {v} MeV')
-        ax.set(xlabel=r'energy transfer  $\omega$  [MeV]', title=f'varying {label}   ({fixed[0].replace("eB", r"$\varepsilon_B$").replace("kF", r"$k_F$")} = {fixed[1]} MeV)')
+        fixed_name = fixed[0].replace("eB", r"$\varepsilon_B$").replace("kF", r"$k_F$")
+        ax.set(xlabel=r'energy transfer  $\omega$  [MeV]', title=f'varying {label}   ({fixed_name} = {fixed[1]} MeV)')
         ax.legend(fontsize=9.5); polish(ax)
     axs[0].set_ylabel(r'$d^2\sigma/d\Omega\,d\omega$  [nb sr$^{-1}$ GeV$^{-1}$]'); fig.suptitle(name, y=1.01, fontsize=11, color='#444'); plt.show()
 
-def show_B():
-    """Panel B: fit the Fermi gas yourself."""
-    w_data = W.Dropdown(options=names, value=default, description='dataset', layout=W.Layout(width='520px'))
-    w_kF   = W.FloatSlider(221, min=150, max=300, step=1, description='$k_F$ [MeV]', continuous_update=True, readout_format='.0f', layout=W.Layout(width='420px'))
-    w_eB   = W.FloatSlider(25, min=0, max=60, step=1, description='$\\varepsilon_B$ [MeV]', continuous_update=True, readout_format='.0f', layout=W.Layout(width='420px'))
-    w_LT   = W.Checkbox(True, description='show L / T decomposition')
-    w_pauli= W.Checkbox(True, description='Pauli blocking')
+def show_fit():
+    """Panel C: fit the Fermi gas yourself."""
+    w_data = W.Dropdown(options=names, value=default, description='data set', layout=W.Layout(width='560px'))
+    w_kF   = W.FloatSlider(221, min=150, max=300, step=1, description='Fermi momentum [MeV]', style=WIDE, continuous_update=True, readout_format='.0f', layout=W.Layout(width='440px'))
+    w_eB   = W.FloatSlider(25, min=0, max=60, step=1, description='removal energy [MeV]', style=WIDE, continuous_update=True, readout_format='.0f', layout=W.Layout(width='440px'))
+    w_LT   = W.Checkbox(True, description='show longitudinal / transverse parts', style=WIDE)
+    w_pauli= W.Checkbox(True, description='Pauli blocking', style=WIDE)
     show_panel(panel_B, W.VBox([w_data, W.HBox([w_kF, w_eB]), W.HBox([w_LT, w_pauli])]),
                dict(name=w_data, kF=w_kF, eB=w_eB, showLT=w_LT, pauli=w_pauli),
                static_calls=[])
     if not USE_WIDGETS:
         panel_B_static(default)
         panel_B(default, 221, 25, True, True)
-        low_q = next(n for n in names if n.startswith('E = 0.400 GeV,  θ = 36'))
+        low_q = next(l for l in names if label_to_set[l].startswith('E = 0.400 GeV,  θ = 36'))
         panel_B(low_q, 221, 25, False, True); panel_B(low_q, 221, 25, False, False)
 
 # spectra with a clean QE peak and q between ~300 and ~1000 MeV at the peak
@@ -269,12 +248,12 @@ def panel_C(kF, Es, show_rfg, qrange):
     if show_rfg: ax.legend(loc='upper left')
     polish(ax); plt.show()
 
-def show_C():
-    """Panel C: superscaling."""
-    w_kFs = W.FloatSlider(228, min=180, max=280, step=1, description='$k_F$ [MeV]', readout_format='.0f', layout=W.Layout(width='420px'))
-    w_Es  = W.FloatSlider(20, min=0, max=50, step=1, description='$E_{\\rm shift}$ [MeV]', readout_format='.0f', layout=W.Layout(width='420px'))
-    w_rfg = W.Checkbox(True, description='RFG parabola')
-    w_cut = W.FloatRangeSlider(value=[0.3, 1.05], min=0.3, max=1.05, step=0.05, description='q range [GeV]', layout=W.Layout(width='420px'))
+def show_scaling():
+    """Panel A: scaling of the first kind (one nucleus, many kinematics)."""
+    w_kFs = W.FloatSlider(228, min=180, max=280, step=1, description='Fermi momentum [MeV]', style=WIDE, readout_format='.0f', layout=W.Layout(width='420px'))
+    w_Es  = W.FloatSlider(20, min=0, max=50, step=1, description='energy shift [MeV]', style=WIDE, readout_format='.0f', layout=W.Layout(width='420px'))
+    w_rfg = W.Checkbox(True, description='Fermi-gas parabola', style=WIDE)
+    w_cut = W.FloatRangeSlider(value=[0.3, 1.05], min=0.3, max=1.05, step=0.05, description='|q| at the peak [GeV]', style=WIDE, layout=W.Layout(width='420px'))
     show_panel(panel_C, W.VBox([W.HBox([w_kFs, w_Es]), W.HBox([w_cut, w_rfg])]),
                dict(kF=w_kFs, Es=w_Es, show_rfg=w_rfg, qrange=w_cut),
                static_calls=[dict(kF=228, Es=20, show_rfg=True, qrange=[0.3, 1.05]),
@@ -288,7 +267,7 @@ def show_C():
 NUCLEI = {'4He': (2, 2, 200, 20, False), '6Li': (3, 3, 165, 15, True), '12C': (6, 6, 228, 20, True), '16O': (8, 8, 230, 20, False),
           '27Al': (13, 14, 236, 18, True), '40Ca': (20, 20, 241, 28, True), '48Ca': (20, 28, 241, 28, False),
           '56Fe': (26, 30, 241, 23, True), '197Au': (79, 118, 245, 25, True), '208Pb': (82, 126, 248, 31, True)}
-NUC_COL = {'4He': '#e34948', '6Li': '#e87ba4', '12C': '#2a78d6', '16O': '#1baf7a', '27Al': '#eda100',
+NUC_COL = {'4He': '#e34948', '6Li': '#c2185b', '12C': '#2a78d6', '16O': '#1baf7a', '27Al': '#eda100',
            '40Ca': '#6250d6', '48Ca': '#9b8be0', '56Fe': '#eb6834', '197Au': '#8a6d00', '208Pb': '#2b2b2b'}
 
 def load_nucleus(name):
@@ -300,82 +279,61 @@ def load_nucleus(name):
         out[(E, th)] = dict(E=E, th=np.radians(th), om=raw_[m,2], sig=raw_[m,3], err=raw_[m,4], ref=cite_[m][0].split(':')[0])
     return out
 
-all_nuclei = {n: load_nucleus(n) for n in NUCLEI if os.path.exists(os.path.join(DATA, f'{n}.dat'))}
+all_nuclei = {n: load_nucleus(n) for n in NUCLEI if n != '6Li' and os.path.exists(os.path.join(DATA, f'{n}.dat'))}   # 6Li left out on purpose (one old data set, no radiative corrections)
+
+_QPEAK = {}
+def _qpk(d):
+    k = id(d)
+    if k not in _QPEAK: _QPEAK[k] = q_at_peak(d)
+    return _QPEAK[k]
 
 def scaling_sets_of(spectra, qlo=0.30, qhi=1.05):
-    return [d for d in spectra.values() if qlo <= q_at_peak(d) <= qhi and d['E'] >= 0.4]
+    return [d for d in spectra.values() if qlo <= _qpk(d) <= qhi and d['E'] >= 0.4]
 
-def panel_C2(chosen, same_kF, kF_all, Es_all, qrange):
-    fig, axs = plt.subplots(1, 2, figsize=(13.5, 5.2), gridspec_kw=dict(wspace=0.2))
-    ps = np.linspace(-2.5, 2.5, 500)
+def panel_C2(chosen, mode, kF_all, Es_all, qrange):
+    same_kF = (mode == COMMON)
+    fig, axs = plt.subplots(1, 2, figsize=(12.5, 4.8), gridspec_kw=dict(wspace=0.2))
+    ps = np.linspace(-2.5, 2.5, 400); nspec = 0
     for n in chosen:
         Z, N, kF, Es, tab = NUCLEI[n]
         if same_kF: kF, Es = kF_all, Es_all
-        sets = scaling_sets_of(all_nuclei[n], *qrange); npts = sum(len(d['om']) for d in sets)
-        for i, d in enumerate(sets):
+        sets = scaling_sets_of(all_nuclei[n], *qrange); nspec += len(sets)
+        if not sets: continue
+        P, F = [], []
+        for d in sets:
             psi, GL, GT, vL, vT, q = scaling_pieces(d['E'], d['th'], d['om'], kF*1e-3, Es*1e-3, Z, N)
-            f = d['sig']/HBARC2_NB/(mott(d['E'], d['th'])*(vL*GL + vT*GT))
-            lab = f'{n}{"" if tab or same_kF else "*"}   $k_F$ = {kF:.0f}, $E_s$ = {Es:.0f} MeV  ({len(sets)} spectra)' if i == 0 else None
-            for ax in axs: ax.plot(psi, f, 'o', ms=3.2, mec='none', color=NUC_COL[n], alpha=0.75, label=lab if ax is axs[0] else None)
+            P.append(psi); F.append(d['sig']/HBARC2_NB/(mott(d['E'], d['th'])*(vL*GL + vT*GT)))
+        P, F = np.concatenate(P), np.concatenate(F)                     # one artist per nucleus and panel: fast redraw
+        lab = f'{n}{"" if tab or same_kF else "*"}   Fermi momentum {kF:.0f} MeV, shift {Es:.0f} MeV   ({len(sets)} spectra)'
+        axs[0].plot(P, F, 'o', ms=3.0, mec='none', color=NUC_COL[n], alpha=0.75, label=lab, rasterized=True)
+        axs[1].plot(P, F, 'o', ms=3.0, mec='none', color=NUC_COL[n], alpha=0.75, rasterized=True)
     for ax in axs:
         ax.plot(ps, f_RFG(ps), color='#888', lw=1.5, ls='--', label=r'Fermi gas  $\frac{3}{4}(1-\psi^{\prime 2})$' if ax is axs[0] else None)
         ax.axvspan(1.0, 2.6, color=C['grid'], alpha=0.5, lw=0); ax.set_xlabel(r"scaling variable  $\psi'$"); polish(ax)
     axs[0].set(xlim=(-2.1, 2.6), ylim=(0, 0.95), ylabel=r"$f(\psi')$", title='linear scale: the peak')
-    axs[1].set(xlim=(-2.1, 1.0), ylim=(3e-3, 1.2), yscale='log', title=r"log scale: the low-$\omega$ side ($\psi'<0$)")
-    fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.0), ncol=3, fontsize=9.5)
-    fig.suptitle('Scaling of the second kind: the same curve for different nuclei' + ('  — one $k_F$ for all' if same_kF else '  — each nucleus with its own $k_F$'),
-                 y=1.02, fontsize=12.5, fontweight='bold')
+    axs[1].set(xlim=(-2.1, 1.0), ylim=(3e-3, 1.2), yscale='log', title=r"log scale: the low-$\omega$ side")
+    fig.legend(loc='upper center', bbox_to_anchor=(0.5, 0.0), ncol=2, fontsize=9.5)
+    fig.suptitle(('one Fermi momentum for all nuclei' if same_kF else 'each nucleus with its own Fermi momentum')
+                 + f'   ·   |q| at the peak {qrange[0]:.2f}–{qrange[1]:.2f} GeV: {nspec} spectra', y=1.02, fontsize=12, fontweight='bold')
     plt.show()
 
-def show_C2():
-    """Panel C2: superscaling across nuclei (scaling of the second kind)."""
+OWN, COMMON = 'each nucleus: its own Fermi momentum', 'all nuclei: one common Fermi momentum'
+
+def show_superscaling():
+    """Panel B: superscaling across nuclei (scaling of the second kind)."""
     avail = list(all_nuclei)
-    w_nuc = W.SelectMultiple(options=avail, value=[n for n in avail if n in ('6Li', '12C', '40Ca', '56Fe', '208Pb')] or avail[:2], description='nuclei', rows=min(6, len(avail)), layout=W.Layout(width='260px'))
-    w_same = W.Checkbox(False, description='same k_F for all nuclei')
-    w_kFa = W.FloatSlider(228, min=150, max=280, step=1, description='$k_F$ [MeV]', readout_format='.0f', continuous_update=False, layout=W.Layout(width='380px'))
-    w_Esa = W.FloatSlider(20, min=0, max=50, step=1, description='$E_{\\rm shift}$ [MeV]', readout_format='.0f', continuous_update=False, layout=W.Layout(width='380px'))
-    w_q = W.FloatRangeSlider(value=[0.3, 1.05], min=0.3, max=1.05, step=0.05, description='q range [GeV]', continuous_update=False, layout=W.Layout(width='380px'))
-    show_panel(panel_C2, W.HBox([w_nuc, W.VBox([w_same, w_kFa, w_Esa, w_q])]),
-               dict(chosen=w_nuc, same_kF=w_same, kF_all=w_kFa, Es_all=w_Esa, qrange=w_q),
-               static_calls=[dict(chosen=avail, same_kF=False, kF_all=228, Es_all=20, qrange=[0.3, 1.05]),
-                             dict(chosen=avail, same_kF=True, kF_all=228, Es_all=20, qrange=[0.3, 1.05])])
-
-def panel_D(setname, x):
-    par = EQS[setname]; rho = x*RHO0
-    fig, axs = plt.subplots(1, 3, figsize=(13.5, 4.6), gridspec_kw=dict(wspace=0.32))
-    # (1) V vs density at several momenta — reproduces Leitner Fig. 7.1 (left)
-    ax = axs[0]; xs = np.linspace(0.02, 3, 120)
-    for i, pm in enumerate([0.0, 0.5, 1.0, 1.5]):
-        ax.plot(xs, [V_gibuu(pm, xx*RHO0, EQS[list(EQS)[1]])[0]*1e3 for xx in xs], color=C['eqs2'], alpha=1-0.22*i, label=f'EQS 2, |p| = {pm:.1f} GeV')
-    ax.plot(xs, [V_gibuu(0.0, xx*RHO0, EQS[list(EQS)[0]])[0]*1e3 for xx in xs], color=C['eqs1'], label='EQS 1')
-    ax.axvline(x, color='#999', ls=':', lw=1); ax.axhline(0, color='#999', lw=0.8)
-    ax.set(xlabel=r'$\rho/\rho_0$', ylabel=r'$V_N$  [MeV]', title='density dependence', ylim=(-110, 320)); ax.legend(fontsize=8.5, loc='upper left'); polish(ax)
-    # (2) V vs momentum at the chosen density, and the effective "binding" V(p')-V(0)
-    ax = axs[1]; ps = np.linspace(0, 1.5, 150)
-    V = V_gibuu(ps, rho, par)*1e3; ax.plot(ps, V, color=C['eqs2'] if par['C'] else C['eqs1'], label=setname.split('(')[0].strip())
-    pF = HBARC*(1.5*np.pi**2*rho)**(1/3); ax.axvspan(0, pF, color=C['grid'], alpha=0.6, lw=0); ax.text(pF/2, V.min()+8, 'Fermi\nsea', ha='center', fontsize=9, color='#666')
-    ax.axhline(0, color='#999', lw=0.8)
-    ax.set(xlabel=r'$|\mathbf{p}|$  [GeV]', ylabel=r'$V_N(p,\rho)$  [MeV]', title=f'momentum dependence at ρ = {x:.2f} ρ₀', ylim=(-90, 100)); polish(ax)
-    shift = V - V[0]; ax.plot(ps, shift, color=C['accent'], ls='--', lw=1.6, label=r"$V_N(p')-V_N(0)$ : effective $\varepsilon_B$")
-    ax.legend(fontsize=8.5, loc='lower right')
-    # (3) LDA for 12C: density, local kF, local V(0)
-    ax = axs[2]; r = np.linspace(0, 5, 200); rh = rho_C12(r)
-    kFr = HBARC*(1.5*np.pi**2*rh)**(1/3)*1e3
-    ax.plot(r, rh/RHO0, color=C['data'], label=r'$\rho(r)/\rho_0$'); ax.plot(r, kFr/300, color=C['rfg'], label=r'$k_F(r)/300$ MeV')
-    Vr = np.array([V_gibuu(0.0, max(x_,1e-6), par)[0] for x_ in rh])*1e3
-    ax.plot(r, -Vr/100, color=C['accent'], label=r'$-V_N(0,r)/100$ MeV')
-    ax.axhline(x, color='#999', ls=':', lw=1); ax.text(4.9, x+0.03, 'ρ chosen in middle panel', ha='right', fontsize=8.5, color='#777')
-    ax.set(xlabel='r  [fm]', title='local density approximation, $^{12}$C', ylim=(0, 1.6)); ax.legend(fontsize=9); polish(ax)
-    fig.suptitle('The GiBUU nucleon mean field (Welke parametrisation, Teis fits)', y=1.02, fontsize=13, fontweight='bold')
-    plt.show()
-
-def show_D():
-    """Panel D: the GiBUU mean field."""
-    w_set = W.ToggleButtons(options=list(EQS), value=list(EQS)[1], description='parameter set', style={'description_width':'initial'})
-    w_rho = W.FloatSlider(1.0, min=0.05, max=2.5, step=0.05, description='$\\rho/\\rho_0$', readout_format='.2f', layout=W.Layout(width='380px'))
-
-    show_panel(panel_D, W.VBox([w_set, w_rho]), dict(setname=w_set, x=w_rho),
-               static_calls=[dict(setname=list(EQS)[1], x=1.0), dict(setname=list(EQS)[0], x=1.0), dict(setname=list(EQS)[1], x=0.5)])
+    w_nuc = W.SelectMultiple(options=avail, value=[n for n in avail if n in ('12C', '40Ca', '208Pb')] or avail[:2], description='nuclei', rows=min(9, len(avail)), layout=W.Layout(width='220px'))
+    w_mode = W.ToggleButtons(options=[OWN, COMMON], value=OWN, style={'button_width': '300px'})
+    w_kFa = W.FloatSlider(228, min=150, max=280, step=1, description='common Fermi momentum [MeV]', style=WIDE, readout_format='.0f', continuous_update=False, disabled=True, layout=W.Layout(width='480px'))
+    w_Esa = W.FloatSlider(20, min=0, max=50, step=1, description='common energy shift [MeV]', style=WIDE, readout_format='.0f', continuous_update=False, disabled=True, layout=W.Layout(width='480px'))
+    w_q = W.FloatRangeSlider(value=[0.3, 1.05], min=0.3, max=1.05, step=0.05, description='|q| at the peak [GeV]', style=WIDE, continuous_update=False, layout=W.Layout(width='480px'))
+    def _toggle(change):
+        w_kFa.disabled = w_Esa.disabled = (change['new'] == OWN)
+    w_mode.observe(_toggle, names='value')
+    show_panel(panel_C2, W.HBox([w_nuc, W.VBox([w_mode, w_kFa, w_Esa, w_q])]),
+               dict(chosen=w_nuc, mode=w_mode, kF_all=w_kFa, Es_all=w_Esa, qrange=w_q),
+               static_calls=[dict(chosen=['12C', '40Ca', '208Pb'], mode=OWN, kF_all=228, Es_all=20, qrange=[0.3, 1.05]),
+                             dict(chosen=['4He', '12C', '208Pb'], mode=COMMON, kF_all=228, Es_all=20, qrange=[0.3, 1.05])])
 
 GF = 1.16638e-5; COSC = 0.9743; HBARC2_CM2 = 0.389379e-27; MMU = 0.10566; ME = 0.000511
 METRIC = np.diag([1.,-1.,-1.,-1.])
@@ -458,7 +416,7 @@ def panel_E(Enu, thm, MA, show_nubar, ml, kF=0.221, eB=0.025):
     axL.text(0.98, 0.97, f'at the peak:  $|\\mathbf{{q}}|$ = {q[ipk]*1e3:.0f} MeV,  $Q^2$ = {Q2pk:.2f} GeV$^2$', transform=axL.transAxes, ha='right', va='top', fontsize=10, color='#444',
              bbox=dict(boxstyle='round,pad=0.4', fc='white', ec='#ddd'))
     axL.set(xlabel=r'energy transfer  $\omega$  [MeV]', ylabel=r'$d^2\sigma/d\Omega\,d\omega$   [$10^{-38}$ cm$^2$ sr$^{-1}$ GeV$^{-1}$ per $^{12}$C]',
-            title=f'CCQE on the Fermi gas:  $E_\\nu$ = {Enu*1e3:.0f} MeV,  $\\theta_\\ell$ = {thm:.0f}°,  $M_A$ = {MA:.2f} GeV')
+            title='cross section and its five parts')
     nz = np.where(np.abs(sig) > 1e-4*np.abs(sig).max())[0]; whi = om[nz[-1]] if len(nz) else om[-1]
     xmax = min(om[-1], 1.3*whi)*1e3
     axL.set_xlim(0, xmax); axR.set_xlim(0, xmax)
@@ -467,15 +425,15 @@ def panel_E(Enu, thm, MA, show_nubar, ml, kF=0.221, eB=0.025):
     for k in ('CC', 'CL', 'LL', 'T', 'Tp'):
         axR.plot(om*1e3, R[k], color=RCOL[k], lw=1.8, label=RNAMES[k])
     axR.axhline(0, color='#999', lw=0.8)
-    axR.set(xlabel=r'energy transfer  $\omega$  [MeV]', ylabel=r'nuclear response  [GeV$^{-1}$]', title='the five RFG response functions ($k_F$ = 221 MeV, $\\varepsilon_B$ = 25 MeV)')
+    axR.set(xlabel=r'energy transfer  $\omega$  [MeV]', ylabel=r'nuclear response  [GeV$^{-1}$]', title='the five response functions')
     axR.legend(fontsize=10, loc='upper right'); polish(axR)
     plt.show()
 
-def show_E():
-    """Panel E: the same Fermi gas hit by a neutrino."""
-    w_Enu = W.FloatSlider(600, min=200, max=1000, step=10, description='$E_\\nu$ [MeV]', readout_format='.0f', continuous_update=False, layout=W.Layout(width='420px'))
-    w_thm = W.FloatSlider(30, min=2, max=180, step=1, description='$\\theta_\\mu$ [deg]', readout_format='.0f', continuous_update=False, layout=W.Layout(width='420px'))
-    w_MA  = W.FloatSlider(1.03, min=0.9, max=1.5, step=0.01, description='$M_A$ [GeV]', readout_format='.2f', continuous_update=False, layout=W.Layout(width='420px'))
+def show_neutrino():
+    """Panel D: the same Fermi gas hit by a neutrino."""
+    w_Enu = W.FloatSlider(600, min=200, max=1000, step=10, description='neutrino energy [MeV]', style=WIDE, readout_format='.0f', continuous_update=False, layout=W.Layout(width='420px'))
+    w_thm = W.FloatSlider(30, min=2, max=180, step=1, description='lepton angle [deg]', style=WIDE, readout_format='.0f', continuous_update=False, layout=W.Layout(width='420px'))
+    w_MA  = W.FloatSlider(1.03, min=0.9, max=1.5, step=0.01, description='axial mass [GeV]', style=WIDE, readout_format='.2f', continuous_update=False, layout=W.Layout(width='420px'))
     w_nub = W.Checkbox(True, description='also antineutrino')
     w_lep = W.ToggleButtons(options=[('muon', MMU), ('electron', ME)], description='lepton')
     show_panel(panel_E, W.VBox([W.HBox([w_Enu, w_thm]), W.HBox([w_MA, w_lep]), w_nub]),
@@ -550,9 +508,9 @@ def panel_F(q, probe, chosen):
     fig.suptitle(f'|q| = {q*1e3:.0f} MeV — the potential acts on the kinematics, so every response moves the same way', y=1.02, fontsize=12.5, fontweight='bold')
     plt.show()
 
-def show_F():
-    """Panel F: what the potential does to the response."""
-    w_qF = W.FloatSlider(500, min=250, max=1100, step=25, description='$|\\mathbf{q}|$ [MeV]', readout_format='.0f', continuous_update=False, layout=W.Layout(width='420px'))
+def show_potential():
+    """(not used in the notebook any more) what the potential does to the response."""
+    w_qF = W.FloatSlider(500, min=250, max=1100, step=25, description='momentum transfer |q| [MeV]', style=WIDE, readout_format='.0f', continuous_update=False, layout=W.Layout(width='420px'))
     w_probe = W.ToggleButtons(options=['electron', 'neutrino'], description='probe')
     w_pots = W.SelectMultiple(options=list(POTS), value=list(POTS)[:4], description='potentials', rows=5, layout=W.Layout(width='420px'))
     show_panel(panel_F, W.VBox([W.HBox([w_qF, w_probe]), w_pots]), dict(q=w_qF, probe=w_probe, chosen=w_pots),
