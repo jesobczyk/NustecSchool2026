@@ -44,8 +44,7 @@ def summary(res):
     E = res['energy']['total']; Eexp, rexp = H.EXP.get(res['nucleus'], (np.nan, np.nan))
     return (f"**{res['nucleus']}, {res['status']}** after {res['iterations']} iterations  \n"
             f"binding energy {E:.1f} MeV (experiment {Eexp:.1f}),  E/A = {E/res['A']:.2f} MeV  \n"
-            f"charge radius {res['radii']['charge']:.2f} fm (experiment {rexp:.2f}),  "
-            f"effective mass in the centre m*/m = {res['mstar']['n'][0]:.2f}")
+            f"charge radius {res['radii']['charge']:.2f} fm (experiment {rexp:.2f})")
 
 # ----------------------------------------------------------------------------- widgets shared by the panels
 w_nuc = W.Dropdown(options=list(H.NUCLEI), value='16O', description='nucleus')
@@ -80,7 +79,7 @@ def show_A():
 def panel_B(nucleus, params, t3_scale, W0_scale):
     res = hf(nucleus, params, t3_scale, W0_scale); r = res['r']
     if res['status'] != 'converged': display(Markdown(f"**{res['status']}** — the figures show the last iteration."))
-    fig, axs = plt.subplots(1, 3, figsize=(14, 3.9), gridspec_kw=dict(wspace=0.3))
+    fig, axs = plt.subplots(1, 2, figsize=(10.5, 3.9), gridspec_kw=dict(wspace=0.3))
     ax = axs[0]
     ax.plot(r, res['rho']['n'] + res['rho']['p'], color=C['tot'], label='all nucleons')
     ax.plot(r, res['rho']['n'], color=C['n'], lw=1.5, label='neutrons'); ax.plot(r, res['rho']['p'], color=C['p'], lw=1.5, label='protons')
@@ -91,10 +90,6 @@ def panel_B(nucleus, params, t3_scale, W0_scale):
     ax.plot(r, H.woods_saxon(r, res['A']), color=C['ws'], ls='--', lw=1.5, label='Woods–Saxon guess (start)')
     ax.axhline(0, color='#999', lw=0.8)
     ax.set(xlabel='r [fm]', ylabel='U(r) [MeV]', xlim=(0, 1.2*res['A']**(1/3) + 4), ylim=(-110, 30), title='the mean field it makes'); ax.legend(fontsize=9); polish(ax)
-    ax = axs[2]
-    for q in ('n', 'p'): ax.plot(r, res['mstar'][q], color=C[q], label=SPECIES[q])
-    ax.axhline(1, color='#999', lw=0.8)
-    ax.set(xlabel='r [fm]', ylabel='m*/m', xlim=(0, 1.2*res['A']**(1/3) + 4), ylim=(0.4, 1.1), title='effective mass'); ax.legend(fontsize=9); polish(ax)
     plt.show(); display(Markdown(summary(res)))
 
 def show_B():

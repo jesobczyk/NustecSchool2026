@@ -5,7 +5,7 @@ Protons and neutrons are treated separately; Coulomb (direct + Slater exchange) 
 Orbitals are labelled (n, l, j) and filled from the bottom (equal filling of the last open level).
 Units: MeV and fm.
 
-The single-particle equation for u(r) = r R(r), with B_q(r) = hbar^2 / 2 m*_q(r):
+The single-particle equation for u(r) = r R(r), with B_q(r) = hbar^2/2m plus density-dependent terms from t1, t2:
     -(B u')' + [ B l(l+1)/r^2 + B'/r + U_q + (W_q / r) (j(j+1) - l(l+1) - 3/4) ] u = e u
 is solved on a radial grid as a symmetric tridiagonal eigenvalue problem.
 """
@@ -128,7 +128,7 @@ def energy(g, P, rho, tau, J, A, coulomb=True):
         kinetic=H2M*(1 - 1/A)*tt,
         t0=t0/2*((1 + x0/2)*rt**2 - (x0 + 0.5)*s2),
         t3=t3/12*rts**a*((1 + x3/2)*rt**2 - (x3 + 0.5)*s2),
-        effective_mass=c1*rt*tt - c2*(rho[0]*tau[0] + rho[1]*tau[1]),
+        momentum=c1*rt*tt - c2*(rho[0]*tau[0] + rho[1]*tau[1]),
         surface=d1*g.d(rt)**2 - d2*(g.d(rho[0])**2 + g.d(rho[1])**2),
         spin_orbit=W0/2*(Jt*g.d(rt) + J[0]*g.d(rho[0]) + J[1]*g.d(rho[1])),
     )
@@ -160,7 +160,7 @@ def run_hf(nucleus='16O', params='SLy4', t3_scale=1.0, W0_scale=1.0, mix=0.4, ma
     for it in range(1, maxiter + 1):
         B, U, Wf = fields(g, P, rho, tau, J, A, coulomb)
         if min(B[0].min(), B[1].min()) <= 0:
-            status = 'collapsed (effective mass became negative)'; break
+            status = 'collapsed (no stable solution)'; break
         try:
             lev = [fill(solve_levels(g, B[0], U[0], Wf[0], lmax), N), fill(solve_levels(g, B[1], U[1], Wf[1], lmax), Z)]
         except RuntimeError as ex:
